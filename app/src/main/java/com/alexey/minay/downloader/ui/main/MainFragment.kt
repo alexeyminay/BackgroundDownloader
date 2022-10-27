@@ -4,8 +4,11 @@ import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.RecyclerView
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.alexey.minay.DownloaderResearch.R
 import com.alexey.minay.downloader.worker.DownloadWorker
 
@@ -16,6 +19,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        view.findViewById<RecyclerView>(R.id.list).adapter = mAdapter
         mAdapter.submitList(
             listOf(
                 Content(
@@ -25,7 +29,7 @@ class MainFragment : Fragment(R.layout.fragment_main) {
                 ),
                 Content(
                     progress = 0,
-                    title = "first",
+                    title = "second",
                     url = "https://firebasestorage.googleapis.com/v0/b/downloader-9f4f3.appspot.com/o/video%20(video-converter.com).mpg?alt=media&token=bc893562-6e49-441a-846e-9ef3b5ed57f9"
                 )
 
@@ -34,7 +38,13 @@ class MainFragment : Fragment(R.layout.fragment_main) {
     }
 
     private fun download(url: String) {
-        val downloadWorkRequest = OneTimeWorkRequestBuilder<DownloadWorker>().build()
+        val downloadWorkRequest = OneTimeWorkRequestBuilder<DownloadWorker>()
+            .addTag("download")
+            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+            .setInputData(workDataOf(
+                DownloadWorker.KEY_INPUT_URL to url
+            ))
+            .build()
         WorkManager.getInstance(requireContext().applicationContext).enqueue(downloadWorkRequest)
     }
 

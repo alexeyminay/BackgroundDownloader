@@ -19,12 +19,21 @@ class DownloadWorker(context: Context, parameters: WorkerParameters) :
         context.getSystemService(Context.NOTIFICATION_SERVICE) as
                 NotificationManager
 
+    override suspend fun getForegroundInfo(): ForegroundInfo {
+        val progress = "Starting Download"
+        return createForegroundInfo(progress)
+    }
+
     override suspend fun doWork(): Result {
         val inputUrl = inputData.getString(KEY_INPUT_URL) ?: return Result.failure()
         val outputFile = inputData.getString(KEY_OUTPUT_FILE_NAME) ?: return Result.failure()
 
-        val progress = "Starting Download"
-        setForeground(createForegroundInfo(progress))
+
+        try {
+            setForeground(getForegroundInfo())
+        }catch (e: Exception) {
+            e.printStackTrace()
+        }
         download(inputUrl, outputFile)
         return Result.success()
     }
