@@ -1,25 +1,41 @@
 package com.alexey.minay.downloader.ui.main
 
-import androidx.lifecycle.ViewModelProvider
 import android.os.Bundle
-import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.alexey.minay.DownloaderResearch.R
+import com.alexey.minay.downloader.worker.DownloadWorker
 
-class MainFragment : Fragment() {
+class MainFragment : Fragment(R.layout.fragment_main) {
 
-    private lateinit var viewModel: MainViewModel
+    private val viewModel by lazy { ViewModelProvider(this)[MainViewModel::class.java] }
+    private val mAdapter by lazy { ContentAdapter { download(it) } }
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        mAdapter.submitList(
+            listOf(
+                Content(
+                    progress = 0,
+                    title = "first",
+                    url = "https://firebasestorage.googleapis.com/v0/b/downloader-9f4f3.appspot.com/o/video%20(video-converter.com)%20(1).mp4?alt=media&token=08a8fadc-65b8-4755-acbf-7bbcd35df1f7"
+                ),
+                Content(
+                    progress = 0,
+                    title = "first",
+                    url = "https://firebasestorage.googleapis.com/v0/b/downloader-9f4f3.appspot.com/o/video%20(video-converter.com).mpg?alt=media&token=bc893562-6e49-441a-846e-9ef3b5ed57f9"
+                )
+
+            )
+        )
     }
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?,
-                              savedInstanceState: Bundle?): View {
-        return inflater.inflate(R.layout.fragment_main, container, false)
+    private fun download(url: String) {
+        val downloadWorkRequest = OneTimeWorkRequestBuilder<DownloadWorker>().build()
+        WorkManager.getInstance(requireContext().applicationContext).enqueue(downloadWorkRequest)
     }
 
     companion object {
