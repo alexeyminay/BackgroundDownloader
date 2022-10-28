@@ -19,6 +19,19 @@ class ContentAdapter(
     override fun onBindViewHolder(holder: ContentViewHolder, position: Int) {
         holder.bind(getItem(position))
     }
+
+    override fun onBindViewHolder(
+        holder: ContentViewHolder,
+        position: Int,
+        payloads: MutableList<Any>
+    ) {
+        payloads.ifEmpty {
+            return super.onBindViewHolder(holder, position, payloads)
+        }
+
+        (payloads[0] as? List<Diff>)?.let { holder.bind(getItem(position), it) }
+    }
+
 }
 
 data class ContentViewHolder(
@@ -28,7 +41,12 @@ data class ContentViewHolder(
 
     fun bind(content: Content) {
         binding.text.text = content.title
-        onClick(content.url)
+        binding.root.setOnClickListener { onClick(content.url) }
+        binding.progress.progress = content.progress
+    }
+
+    fun bind(content: Content, diffs: List<Diff>) {
+        binding.progress.progress = content.progress
     }
 
 }
@@ -41,11 +59,21 @@ data class Content(
 
 object ContentDiffUtilCallback : DiffUtil.ItemCallback<Content>() {
     override fun areItemsTheSame(oldItem: Content, newItem: Content): Boolean {
-        return oldItem == newItem
+        return oldItem.url == newItem.url
     }
 
     override fun areContentsTheSame(oldItem: Content, newItem: Content): Boolean {
         return oldItem == newItem
     }
 
+    override fun getChangePayload(oldItem: Content, newItem: Content): Any? {
+        val diff = mutableListOf<Diff>()
+        if (oldItem.progress != newItem.progress) diff.add(Diff.PROGRESS)
+        return diff.ifEmpty { super.getChangePayload(oldItem, newItem) }
+    }
+
+}
+
+enum class Diff {
+    PROGRESS
 }
