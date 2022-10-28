@@ -12,11 +12,15 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.alexey.minay.DownloaderResearch.R
+import com.alexey.minay.downloader.data.FileDownloader
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
-class DownloadWorker(context: Context, parameters: WorkerParameters) :
-    CoroutineWorker(context, parameters) {
+class DownloadWorker(
+    context: Context,
+    parameters: WorkerParameters,
+    private val downloader: FileDownloader,
+) : CoroutineWorker(context, parameters) {
 
     private val mNotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as
@@ -37,14 +41,14 @@ class DownloadWorker(context: Context, parameters: WorkerParameters) :
     }
 
     private suspend fun download(inputUrl: String, outputFile: String, contentId: String) {
-        repeat(20) {
+        repeat(100) {
             try {
-                setForeground(createForegroundInfo(it * 5, contentId))
+                setForeground(createForegroundInfo(it, contentId))
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            setProgress(workDataOf(KEY_PROGRESS to it * 5))
-            delay(Random.nextInt(500, 1200).toLong())
+            setProgress(workDataOf(KEY_PROGRESS to it))
+            delay(Random.nextInt(2000, 5000).toLong())
         }
     }
 
@@ -62,7 +66,6 @@ class DownloadWorker(context: Context, parameters: WorkerParameters) :
 
         val notification = NotificationCompat.Builder(applicationContext, channelId)
             .setContentTitle(title)
-            .setTicker(title)
             .setProgress(100, progress, false)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
