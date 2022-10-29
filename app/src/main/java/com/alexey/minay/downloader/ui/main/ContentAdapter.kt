@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.alexey.minay.DownloaderResearch.databinding.ItemContentBinding
 
 class ContentAdapter(
-    private val onClick: (String) -> Unit
+    private val onClick: (String, String) -> Unit
 ) : ListAdapter<Content, ContentViewHolder>(ContentDiffUtilCallback) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContentViewHolder {
@@ -36,12 +36,12 @@ class ContentAdapter(
 
 data class ContentViewHolder(
     private val binding: ItemContentBinding,
-    private val onClick: (String) -> Unit
+    private val onClick: (String, String) -> Unit
 ) : ViewHolder(binding.root) {
 
     fun bind(content: Content) {
         binding.text.text = content.title
-        binding.root.setOnClickListener { onClick(content.url) }
+        binding.root.setOnClickListener { onClick(content.url, content.title) }
         binding.progress.progress = content.progress
     }
 

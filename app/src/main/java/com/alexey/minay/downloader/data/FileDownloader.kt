@@ -21,10 +21,14 @@ class FileDownloader() {
             body != null
         ) {
             val length = body.contentLength()
+            if (length <= 0) {
+                emit(Result.Error)
+                return@flow
+            }
             body.byteStream().apply {
                 file.outputStream().use { fileOut ->
                     var bytesCopied = 0L
-                    val buffer = ByteArray(1024)
+                    val buffer = ByteArray(1024 * 1024 * 10)
                     var bytes = read(buffer)
                     while (bytes >= 0) {
                         fileOut.write(buffer, 0, bytes)
@@ -36,6 +40,7 @@ class FileDownloader() {
             }
         } else {
             emit(Result.Error)
+            return@flow
         }
 
         emit(Result.Success)
