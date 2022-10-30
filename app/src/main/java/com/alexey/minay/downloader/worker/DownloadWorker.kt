@@ -1,21 +1,23 @@
 package com.alexey.minay.downloader.worker
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.work.*
 import com.alexey.minay.DownloaderResearch.R
+import com.alexey.minay.downloader.MainActivity
 import com.alexey.minay.downloader.data.FileDownloader
 import com.alexey.minay.downloader.data.Result.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.launch
 import java.io.File
 
 class DownloadWorker(
@@ -58,21 +60,16 @@ class DownloadWorker(
                     is Success -> {
                         Toast.makeText(applicationContext, "Success", Toast.LENGTH_SHORT).show()
                     }
+
                     is Progress -> {
                         val progress = (result.progress * 100f / result.total).toInt()
-                        coroutineScope {
-                            launch {
-                                setForeground(
-                                    createForegroundInfo(
-                                        progress = progress,
-                                        contentId = contentId,
-                                        inputTitle = inputTitle
-                                    )
-                                )
-                            }
-                            launch { setProgress(workDataOf(KEY_PROGRESS to progress)) }
-                        }
+                        mNotificationManager.notify(
+                            contentId.hashCode(),
+                            createNotification(progress, inputTitle)
+                        )
+                        setProgress(workDataOf(KEY_PROGRESS to progress))
                     }
+
                     is Error -> {
                         Toast.makeText(applicationContext, "Error", Toast.LENGTH_SHORT).show()
                     }
@@ -85,8 +82,17 @@ class DownloadWorker(
         contentId: String,
         inputTitle: String
     ): ForegroundInfo {
+        val notification = createNotification(progress, inputTitle)
+
+        val id = contentId.hashCode()
+        return ForegroundInfo(id, notification)
+    }
+
+    private fun createNotification(
+        progress: Int,
+        inputTitle: String
+    ): Notification {
         val channelId = applicationContext.getString(R.string.notification_channel_id)
-        val title = applicationContext.getString(R.string.notification_title)
         val cancel = applicationContext.getString(R.string.cancel_download)
 
         val intent = WorkManager.getInstance(applicationContext)
@@ -96,16 +102,27 @@ class DownloadWorker(
             createChannel(channelId)
         }
 
-        val notification = NotificationCompat.Builder(applicationContext, channelId)
+        val contentIntent = Intent(applicationContext, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            applicationContext,
+            0,
+            contentIntent,
+            PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(applicationContext, channelId)
             .setContentTitle(inputTitle)
             .setProgress(100, progress, false)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(false) // Do not delete after click
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .addAction(R.drawable.baseline_close_24, cancel, intent)
             .build()
-
-        val id = contentId.hashCode()
-        return ForegroundInfo(id, notification)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
